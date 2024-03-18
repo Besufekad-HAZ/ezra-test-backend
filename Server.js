@@ -1,7 +1,4 @@
-// app.js
-
 const express = require("express");
-
 const app = express();
 const connectDb = require("./config/connectDb");
 const dotenv = require("dotenv").config();
@@ -18,23 +15,42 @@ app.use(express.json({ limit: "50mb" }));
 
 connectDb();
 
+// Security middleware
+app.use((req, res, next) => {
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  next();
+});
+
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
+  next();
+});
+
+// CORS middleware
 app.use(cors(corsOptions));
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigins.join(", "));
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 app.use("/", require("./routes/root"));
-// app.use((req, res, next) => {
-//   console.log(req.path, req.method);
-//   next();
-// });
+
 // All routes are authenticated by default
 app.use("/users", userRoutes);
 app.use("/devotion", devotionRoutes);
 app.use("/course", courseController);
 app.use("/quiz", quizController);
 
-// app.use("/images", express.static("public/images"));
 app.all("*", (req, res) => {
   res.status(404);
   if (req.accepts("html")) {
@@ -46,7 +62,6 @@ app.all("*", (req, res) => {
   }
 });
 
-// listen for requests
 app.listen(process.env.PORT, () => {
   console.log("connected to the database");
   console.log(`Server is listening on port ${process.env.PORT}`);
