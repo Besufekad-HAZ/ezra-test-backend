@@ -1,7 +1,4 @@
-// app.js
-
 const express = require("express");
-
 const app = express();
 const connectDb = require("./config/connectDb");
 const dotenv = require("dotenv").config();
@@ -22,19 +19,27 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Clickjacking and other security headers
+app.use((req, res, next) => {
+  // Clickjacking protection
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+
+  // Other security headers
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("X-Download-Options", "noopen");
+  res.setHeader("Referrer-Policy", "origin");
+
+  next();
+});
+
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 app.use("/", require("./routes/root"));
-// app.use((req, res, next) => {
-//   console.log(req.path, req.method);
-//   next();
-// });
-// All routes are authenticated by default
 app.use("/users", userRoutes);
 app.use("/devotion", devotionRoutes);
 app.use("/course", courseController);
 app.use("/quiz", quizController);
 
-// app.use("/images", express.static("public/images"));
 app.all("*", (req, res) => {
   res.status(404);
   if (req.accepts("html")) {
@@ -46,7 +51,6 @@ app.all("*", (req, res) => {
   }
 });
 
-// listen for requests
 app.listen(process.env.PORT, () => {
   console.log("connected to the database");
   console.log(`Server is listening on port ${process.env.PORT}`);
